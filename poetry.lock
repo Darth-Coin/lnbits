@@ -175,6 +175,24 @@ jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
 uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
+name = "boltz-client"
+version = "0.0.7"
+description = "python boltz client"
+category = "main"
+optional = false
+python-versions = ">=3.7,<4.0"
+files = [
+    {file = "boltz_client-0.0.7-py3-none-any.whl", hash = "sha256:15ed4d5906ea383b3424d86aaef5b4e41d1eeffddf7501d94ecdec07d689913f"},
+    {file = "boltz_client-0.0.7.tar.gz", hash = "sha256:3617f3afe4b36221047157f560662e95c54af8880f081641deac74283871df80"},
+]
+
+[package.dependencies]
+click = ">=8"
+embit = ">=0.4"
+httpx = ">=0.23"
+websockets = ">=10"
+
+[[package]]
 name = "cashu"
 version = "0.6.0"
 description = "Ecash wallet and mint with Bitcoin Lightning support"
@@ -2090,4 +2108,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9 | ^3.8 | ^3.7"
-content-hash = "73e1443abc1eed24639a5297a66b2eb16e80491f8849b8008e065f153de215c7"
+content-hash = "5ff0545f799a749f9ec99a9539f304135d2eb608b2f8a21e3935ae720be706e3"
