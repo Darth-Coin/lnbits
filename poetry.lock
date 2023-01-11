@@ -176,14 +176,14 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "boltz-client"
-version = "0.1.1"
+version = "0.1.2"
 description = "python boltz client"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "boltz_client-0.1.1-py3-none-any.whl", hash = "sha256:a01b8daf026bba7a73a63f6faa05cf31998e129380ea033bc68c0f945346959c"},
-    {file = "boltz_client-0.1.1.tar.gz", hash = "sha256:7648760dcf3ff70503ae06ced95e27876eed621603def7bc4f9695af34754fd1"},
+    {file = "boltz_client-0.1.2-py3-none-any.whl", hash = "sha256:2fb0814c7c3ea88d039e71088648df27db0c036b777b0618bd30638dd76ebe90"},
+    {file = "boltz_client-0.1.2.tar.gz", hash = "sha256:b360c0ff26f2dea62af6457de4d8c46e434cd24b607ed3aa71494409b57e082b"},
 ]
 
 [package.dependencies]
@@ -2108,4 +2108,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9 | ^3.8 | ^3.7"
-content-hash = "33fa0aefed4d26dcdc66c71522c8ecb738c2f259e808d8765efcfbf5e9efb09b"
+content-hash = "75e1611af8dc00c8f27de0d22f2d40adad4620d915021b12702010f544559ae0"
