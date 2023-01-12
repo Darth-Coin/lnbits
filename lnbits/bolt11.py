@@ -5,7 +5,6 @@ from decimal import Decimal
 from typing import List, NamedTuple, Optional
 
 import bitstring
-import embit
 import secp256k1
 from bech32 import CHARSET, bech32_decode, bech32_encode
 from ecdsa import SECP256k1, VerifyingKey
@@ -67,10 +66,13 @@ def decode(pr: str) -> Invoice:
             invoice.amount_msat = _unshorten_amount(amountstr)
 
     # pull out date
-    invoice.date = data.read(35).uint
+    invoice_date = data.read(35)
+    assert invoice_date
+    invoice.date = invoice_date.uint
 
     while data.pos != data.len:
         tag, tagdata, data = _pull_tagged(data)
+        assert tagdata
         data_length = len(tagdata) / 5
 
         if tag == "d":
@@ -90,12 +92,22 @@ def decode(pr: str) -> Invoice:
         elif tag == "r":
             s = bitstring.ConstBitStream(tagdata)
             while s.pos + 264 + 64 + 32 + 32 + 16 < s.len:
+                raw_pubkey = s.read(264)
+                assert raw_pubkey
+                scid = s.read(64)
+                assert scid
+                base_fee_msat = s.read(32)
+                assert base_fee_msat
+                ppm_fee = s.read(32)
+                assert ppm_fee
+                cltv = s.read(16)
+                assert cltv
                 route = Route(
-                    pubkey=s.read(264).tobytes().hex(),
-                    short_channel_id=_readable_scid(s.read(64).intbe),
-                    base_fee_msat=s.read(32).intbe,
-                    ppm_fee=s.read(32).intbe,
-                    cltv=s.read(16).intbe,
+                    pubkey=raw_pubkey.tobytes().hex(),
+                    short_channel_id=_readable_scid(scid.intbe),
+                    base_fee_msat=base_fee_msat.intbe,
+                    ppm_fee=ppm_fee.intbe,
+                    cltv=cltv.intbe,
                 )
                 invoice.route_hints.append(route)
 
@@ -204,8 +216,9 @@ def lnencode(addr, privkey):
                     + bitstring.pack("intbe:16", cltv)
                 )
             data += tagged("r", route)
-        elif k == "f":
-            data += encode_fallback(v, addr.currency)
+        # TODO: encode_fallback is not defined
+        # elif k == "f":
+        #     data += encode_fallback(v, addr.currency)
         elif k == "d":
             data += tagged_bytes("d", v.encode())
         elif k == "x":
@@ -255,12 +268,14 @@ class LnAddr(object):
         self.paymenthash = paymenthash
         self.signature = None
         self.pubkey = None
+        self.fallback = None
         self.currency = currency
         self.amount = amount
 
     def __str__(self):
+        assert self.pubkey
         return "LnAddr[{}, amount={}{} tags=[{}]]".format(
-            bytes.hex(self.pubkey.serialize()).decode(),
+            bytes.hex(self.pubkey.serialize()),
             self.amount,
             self.currency,
             ", ".join([k + "=" + str(v) for k, v in self.tags]),
@@ -272,10 +287,12 @@ def shorten_amount(amount):
     # Convert to pico initially
     amount = int(amount * 10**12)
     units = ["p", "n", "u", "m", ""]
-    for unit in units:
+    unit = "p"
+    for this_unit in units:
         if amount % 1000 == 0:
             amount //= 1000
         else:
+            unit = this_unit
             break
     return str(amount) + unit
 
@@ -310,12 +327,13 @@ def _pull_tagged(stream):
     return (CHARSET[tag], stream.read(length * 5), stream)
 
 
-def is_p2pkh(currency, prefix):
-    return prefix == base58_prefix_map[currency][0]
+# base58_prefix_map not defined
+# def is_p2pkh(currency, prefix):
+#     return prefix == base58_prefix_map[currency][0]
 
 
-def is_p2sh(currency, prefix):
-    return prefix == base58_prefix_map[currency][1]
+# def is_p2sh(currency, prefix):
+#     return prefix == base58_prefix_map[currency][1]
 
 
 # Tagged field containing BitArray
@@ -366,5 +384,7 @@ def bitarray_to_u5(barr):
     ret = []
     s = bitstring.ConstBitStream(barr)
     while s.pos != s.len:
-        ret.append(s.read(5).uint)
+        data = s.read(5)
+        assert data
+        ret.append(data.uint)
     return ret

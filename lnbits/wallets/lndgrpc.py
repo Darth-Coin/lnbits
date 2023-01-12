@@ -9,7 +9,7 @@ except ImportError:  # pragma: nocover
 import asyncio
 import base64
 import hashlib
-from os import environ, error
+from os import environ
 from typing import AsyncGenerator, Dict, Optional
 
 from loguru import logger
@@ -106,9 +106,6 @@ class LndWallet(Wallet):
             )
 
         endpoint = settings.lnd_grpc_endpoint
-        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        self.port = int(settings.lnd_grpc_port)
-        self.cert_path = settings.lnd_grpc_cert or settings.lnd_cert
 
         macaroon = (
             settings.lnd_grpc_macaroon
@@ -123,8 +120,17 @@ class LndWallet(Wallet):
             macaroon = AESCipher(description="macaroon decryption").decrypt(
                 encrypted_macaroon
             )
-        self.macaroon = load_macaroon(macaroon)
 
+        cert_path = settings.lnd_grpc_cert or settings.lnd_cert
+        if not endpoint or not macaroon or not cert_path or not settings.lnd_grpc_port:
+            raise Exception("cannot initialize lndrest")
+
+        self.endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        self.port = int(settings.lnd_grpc_port)
+        self.cert_path = settings.lnd_grpc_cert or settings.lnd_cert
+
+        self.macaroon = load_macaroon(macaroon)
+        self.cert_path = cert_path
         cert = open(self.cert_path, "rb").read()
         creds = grpc.ssl_channel_credentials(cert)
         auth_creds = grpc.metadata_call_credentials(self.metadata_callback)
@@ -141,8 +147,6 @@ class LndWallet(Wallet):
     async def status(self) -> StatusResponse:
         try:
             resp = await self.rpc.ChannelBalance(ln.ChannelBalanceRequest())
-        except RpcError as exc:
-            return StatusResponse(str(exc._details), 0)
         except Exception as exc:
             return StatusResponse(str(exc), 0)
 
@@ -155,15 +159,19 @@ class LndWallet(Wallet):
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
     ) -> InvoiceResponse:
-        params: Dict = {"value": amount, "expiry": 600, "private": True}
+        params: Dict = {
+            "description_hash": b"",
+            "value": amount,
+            "expiry": 600,
+            "memo": memo or "",
+            "private": True,
+        }
         if description_hash:
             params["description_hash"] = description_hash
         elif unhashed_description:
             params["description_hash"] = hashlib.sha256(
                 unhashed_description
             ).digest()  # as bytes directly
-        else:
-            params["memo"] = memo or ""
 
         try:
             req = ln.Invoice(**params)
@@ -186,8 +194,6 @@ class LndWallet(Wallet):
         )
         try:
             resp = await self.routerpc.SendPaymentV2(req).read()
-        except RpcError as exc:
-            return PaymentResponse(False, None, None, None, exc._details)
         except Exception as exc:
             return PaymentResponse(False, None, None, None, str(exc))
 
@@ -235,7 +241,7 @@ class LndWallet(Wallet):
             return PaymentStatus(None)
         try:
             resp = await self.rpc.LookupInvoice(ln.PaymentHash(r_hash=r_hash))
-        except RpcError as exc:
+        except RpcError:
             return PaymentStatus(None)
         if resp.settled:
             return PaymentStatus(True)

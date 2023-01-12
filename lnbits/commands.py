@@ -84,6 +84,7 @@ async def migrate_databases():
                             await set_migration_version(conn, db_name, version)
 
     async with core_db.connect() as conn:
+        exists = False
         if conn.type == SQLITE:
             exists = await conn.fetchone(
                 "SELECT * FROM sqlite_master WHERE type='table' AND name='dbversions'"

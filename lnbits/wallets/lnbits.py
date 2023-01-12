@@ -1,5 +1,4 @@
 import asyncio
-import hashlib
 import json
 from typing import AsyncGenerator, Dict, Optional
 
@@ -22,12 +21,13 @@ class LNbitsWallet(Wallet):
 
     def __init__(self):
         self.endpoint = settings.lnbits_endpoint
-
         key = (
             settings.lnbits_key
             or settings.lnbits_admin_key
             or settings.lnbits_invoice_key
         )
+        if not self.endpoint or not key:
+            raise Exception("cannot initialize lnbits wallet")
         self.key = {"X-Api-Key": key}
 
     async def status(self) -> StatusResponse:
@@ -60,13 +60,12 @@ class LNbitsWallet(Wallet):
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
     ) -> InvoiceResponse:
-        data: Dict = {"out": False, "amount": amount}
+        data: Dict = {"out": False, "memo": memo or "", "amount": amount}
+
         if description_hash:
             data["description_hash"] = description_hash.hex()
         if unhashed_description:
             data["unhashed_description"] = unhashed_description.hex()
-
-        data["memo"] = memo or ""
 
         async with httpx.AsyncClient() as client:
             r = await client.post(

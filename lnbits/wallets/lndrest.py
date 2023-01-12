@@ -2,13 +2,11 @@ import asyncio
 import base64
 import hashlib
 import json
-from pydoc import describe
 from typing import AsyncGenerator, Dict, Optional
 
 import httpx
 from loguru import logger
 
-from lnbits import bolt11 as lnbits_bolt11
 from lnbits.settings import settings
 
 from .base import (
@@ -26,11 +24,6 @@ class LndRestWallet(Wallet):
 
     def __init__(self):
         endpoint = settings.lnd_rest_endpoint
-        endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
-        endpoint = (
-            "https://" + endpoint if not endpoint.startswith("http") else endpoint
-        )
-        self.endpoint = endpoint
 
         macaroon = (
             settings.lnd_rest_macaroon
@@ -45,6 +38,15 @@ class LndRestWallet(Wallet):
             macaroon = AESCipher(description="macaroon decryption").decrypt(
                 encrypted_macaroon
             )
+
+        if not endpoint or not macaroon or not settings.lnd_rest_cert:
+            raise Exception("cannot initialize lndrest")
+
+        endpoint = endpoint[:-1] if endpoint.endswith("/") else endpoint
+        endpoint = (
+            "https://" + endpoint if not endpoint.startswith("http") else endpoint
+        )
+        self.endpoint = endpoint
         self.macaroon = load_macaroon(macaroon)
 
         self.auth = {"Grpc-Metadata-macaroon": self.macaroon}
@@ -74,9 +76,13 @@ class LndRestWallet(Wallet):
         memo: Optional[str] = None,
         description_hash: Optional[bytes] = None,
         unhashed_description: Optional[bytes] = None,
-        **kwargs,
     ) -> InvoiceResponse:
-        data: Dict = {"value": amount, "private": True}
+        data: Dict = {
+            "value": amount,
+            "description_hash": "",
+            "memo": memo or "",
+            "private": True,
+        }
         if description_hash:
             data["description_hash"] = base64.b64encode(description_hash).decode(
                 "ascii"
@@ -85,8 +91,6 @@ class LndRestWallet(Wallet):
             data["description_hash"] = base64.b64encode(
                 hashlib.sha256(unhashed_description).digest()
             ).decode("ascii")
-        else:
-            data["memo"] = memo or ""
 
         async with httpx.AsyncClient(verify=self.cert) as client:
             r = await client.post(

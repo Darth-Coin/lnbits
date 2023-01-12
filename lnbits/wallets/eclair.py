@@ -39,11 +39,13 @@ class UnknownError(Exception):
 class EclairWallet(Wallet):
     def __init__(self):
         url = settings.eclair_url
-        self.url = url[:-1] if url.endswith("/") else url
+        passw = settings.eclair_pass
+        if not url or not passw:
+            raise Exception("cannot initialize eclair")
 
+        self.url = url[:-1] if url.endswith("/") else url
         self.ws_url = f"ws://{urllib.parse.urlsplit(self.url).netloc}/ws"
 
-        passw = settings.eclair_pass
         encodedAuth = base64.b64encode(f":{passw}".encode())
         auth = str(encodedAuth, "utf-8")
         self.auth = {"Authorization": f"Basic {auth}"}
@@ -75,13 +77,11 @@ class EclairWallet(Wallet):
         unhashed_description: Optional[bytes] = None,
     ) -> InvoiceResponse:
 
-        data: Dict = {"amountMsat": amount * 1000}
+        data: Dict = {"memo": memo or "", "amountMsat": amount * 1000}
         if description_hash:
             data["description_hash"] = description_hash.hex()
         elif unhashed_description:
             data["description_hash"] = hashlib.sha256(unhashed_description).hexdigest()
-        else:
-            data["description"] = memo or ""
 
         async with httpx.AsyncClient() as client:
             r = await client.post(
@@ -153,6 +153,7 @@ class EclairWallet(Wallet):
         }
 
         data = r.json()[-1]
+        fee_msat = 0
         if data["status"]["type"] == "sent":
             fee_msat = -data["status"]["feesPaid"]
             preimage = data["status"]["paymentPreimage"]

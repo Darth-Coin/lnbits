@@ -1,18 +1,8 @@
-# Borrowed from the excellent accent-starlette
-# https://github.com/accent-starlette/starlette-core/blob/master/starlette_core/templating.py
-
 import typing
 
-from starlette import templating
-from starlette.datastructures import QueryParams
-from starlette.requests import Request
-
-from lnbits.requestvars import g
-
-try:
-    import jinja2
-except ImportError:  # pragma: nocover
-    jinja2 = None  # type: ignore
+import jinja2
+from fastapi import Request, templating
+from fastapi.datastructures import QueryParams
 
 
 class Jinja2Templates(templating.Jinja2Templates):
@@ -20,7 +10,7 @@ class Jinja2Templates(templating.Jinja2Templates):
         assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
         self.env = self.get_environment(loader)
 
-    def get_environment(self, loader: "jinja2.BaseLoader") -> "jinja2.Environment":
+    def get_environment(self, loader: jinja2.BaseLoader) -> jinja2.Environment:
         @jinja2.pass_context
         def url_for(context: dict, name: str, **path_params: typing.Any) -> str:
             request: Request = context["request"]
