@@ -67,6 +67,6 @@ In order to allow comments, add the characters lenght of the box, from 1 to 250.
 <li>Go to LNbits - Tipjar extension and create a new Tipjar. Select also the onchain option besides the LN wallet.</li>
 <li>Optional - Go to LNbits - SatsPay extension and create a new charge. You can choose between onchain and LN or both. It will create a invoice charge that can be shared.</li>
 <li>Optional - If you use your LNbits linked to a Wordpress + Woocommerce page, once you create a watch-only wallet in your LNbits, the customer will have the both options to pay onchain and LN, in the same screen.</li>
-</ul>
+</ul>  
 
 </details>
